@@ -1,0 +1,36 @@
+#!/bin/bash 
+
+ORIGINAL_ARGS="$@"
+
+if [[ -d $HOME/Tmp ]] ; then
+    mkdir -p $HOME/Tmp ;
+elif [[ -f $HOME/Tmp/showCommand.results.txt ]] ; then
+    rm $HOME/Tmp/showCommand.results.txt ;
+    touch $HOME/Tmp/showCommand.results.txt ;
+fi ;
+
+echo "command: ""$@"
+
+if [ ${SHOW_COMMAND_VERBOSE+x} ]; then
+    for (( i=1; i <= $#; i++ )); do
+        echo \$$i={"${!i}"} ;
+    done
+    echo
+    echo
+    echo
+    echo set=
+    set | sort
+    echo
+    echo
+    echo
+    echo alias=
+    alias | sort
+else
+    for (( i=1; i <= $#; i++ )); do
+        echo \$$i={"${!i}"} ;
+    done ;
+fi | tee -a $HOME/Tmp/showCommand.results.txt ;
+
+
+echo Press any key to continue ...
+read RESPONSE

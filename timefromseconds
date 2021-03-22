@@ -1,0 +1,13 @@
+#!/usr/bin/env dotnet script
+
+int counter = 0; foreach (string arg in Environment.GetCommandLineArgs()) Console.WriteLine("Environment.GetCommandLineArgs()[{0}] : '{1}'", counter++, arg);
+
+// Initialize the "epoch"
+// The "epoch" is 12:00:00 AM UTC, January 1, 1970
+DateTime epoch = new DateTime().AddYears(1969).AddHours(-8);
+
+TimeSpan nowDiff = (DateTime.Now - epoch);
+System.Console.WriteLine("Current Time (Total Seconds): " + nowDiff.TotalSeconds);
+System.Console.WriteLine("Current Local Time: " + epoch.AddSeconds(nowDiff.TotalSeconds).ToString());
+System.Console.WriteLine("Current UTC Time: " + epoch.AddSeconds(nowDiff.TotalSeconds).ToUniversalTime().ToString());
+

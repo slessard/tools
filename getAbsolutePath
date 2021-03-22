@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [[ "$1" == "-e" ]]; then
+	ESCAPE_RESULT=1
+	shift
+    RELATIVE_PATH="$@";
+	RELATIVE_PATH_ESCAPED="${1// /\\ }"
+else
+	ESCAPE_RESULT=0
+    RELATIVE_PATH="$@";
+fi
+
+ABSOLUTE_PATH=$(cd -P -- "$(dirname -- "$RELATIVE_PATH")" && pwd -P)/$(basename -- "$RELATIVE_PATH")
+
+if (( $ESCAPE_RESULT == 0 )); then
+	echo "$ABSOLUTE_PATH";
+else
+	echo "${ABSOLUTE_PATH// /\\ }";
+fi

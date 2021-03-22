@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# *****************************************************************
+# BEGIN REGION: help message and function to print the help message
+# *****************************************************************
+
+#
+#
+# cnslookup - Perform name lookup via web service back end using curl
+#
+# Usage:
+#
+#    cnslookup <domain name> [<query type> [<name server>]]
+#
+#
+# Valid values for query type are:
+#
+#    "A"      IPv4 address
+#    "AAAA"   IPv6 address
+#    "ANY"    any type
+#    "CNAME"  canonical name
+#    "NS"     nameserver
+#    "MX"     mail exchange
+#    "PTR"    domain pointer
+#    "SOA"    start of authority
+#    "TXT"    text
+#    "LOC"    location
+#    "RP"     responsible person
+#    "AXFR"   zone transfer
+#
+#
+
+function printHelp ()
+{
+    # Use sed to print the help message directly from the commented
+    # lines above this function at the top of this file
+    sed -n "7,31p" "$0" | sed 's/^#//g'
+}
+
+# *****************************************************************
+# END REGION: help message and function to print the help message
+# *****************************************************************
+
+
+
+# *****************************************************************
+# BEGIN REGION: Initialize constants
+# *****************************************************************
+
+# The delimiter that marks the *end* of the section of interesting data
+# in the web page returned from the name lookup service
+readonly PRE_TAG_START="<pre>"
+
+# The delimiter that marks the *beginning* of the section of interesting data
+# in the web page returned from the name lookup service
+readonly PRE_TAG_END="</pre>"
+
+# Set the URL of the web page that provides the name lookup service
+readonly REQUEST_URI="http://www.kloth.net/services/nslookup.php"
+
+# Set cURL's User Agent string to be the same as Safari version 5.0.3 on OS X version 10.5.8.
+readonly USER_AGENT="Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_8; en-us) AppleWebKit/533.19.4\
+                    (KHTML, like Gecko) Version/5.0.3 Safari/533.19.4"
+
+# Set the path where cURL will save the web page returned by the name lookup service for later parsing
+readonly OUTPUT_FILE="${TMPDIR}/${RANDOM}/$(basename $0).${RANDOM}"
+
+# Declare and set default values for the name server and name lookup query type
+readonly DEFAULT_SERVER="localhost"
+readonly DEFAULT_QUERY_TYPE="A"
+
+# *****************************************************************
+# END REGION: Initialize constants
+# *****************************************************************
+
+
+
+# *****************************************************************
+# BEGIN REGION: Declare functions
+# *****************************************************************
+
+function processCommandLineArguments ()
+{
+    # Process command line arguments
+    DOMAIN_NAME="$1"
+    
+    if (( $# >= 2 )) ; then
+        QUERY_TYPE="$2" ;
+    fi
+    
+    if (( $# >= 3 )) ; then
+        SERVER="$3" ;
+    fi
+}
+
+function doNameLookup ()
+{
+    # Use curl to submit the request to the name lookup service and download
+    # the resulting web page returned by the service
+    curl --url "$REQUEST_URI" --user-agent "$(echo $USER_AGENT)" -d d="$DOMAIN_NAME"\
+        -d n="$SERVER" -d q="$QUERY_TYPE" --create-dirs --output "$OUTPUT_FILE"\
+        --silent --show-error
+    
+    # Parse the web page returned from the name lookup service...
+    # Perform a two pass parsing of the file. Pass 1 finds the line
+    # number for the line containing the delimiter that marks the end
+    # of the section of interesting data. Pass 2 finds the line number
+    # for the line containing the delimiter that marks the beginning
+    # of the section of interesting data.
+    #
+    # NOTE: "declare -i" forces the environment variable to be an integer type
+    #
+    declare -i LINENO_END=$(grep -n "$PRE_TAG_END" "$OUTPUT_FILE" | sed 's/:.*$//g')
+    declare -i LINENO_START=$(grep -n "$PRE_TAG_START" "$OUTPUT_FILE" | sed 's/:.*$//g')
+    
+    # Use sed to print out only the portion of the web page between
+    # the starting line number and ending line number
+    sed -n "$(($LINENO_START + 1)),$(($LINENO_END - 2))p" "$OUTPUT_FILE"
+}
+
+function main ()
+{
+    # Declare local variables and initialize with default values
+    DOMAIN_NAME=""
+    QUERY_TYPE="$DEFAULT_QUERY_TYPE"
+    SERVER="$DEFAULT_SERVER"
+
+    processCommandLineArguments "$@"
+    setProxyIfNeeded
+    doNameLookup "$@"
+}
+
+# *****************************************************************
+# END REGION: Declare functions
+# *****************************************************************
+
+
+
+# Check to see if the first argument if one of (does not exist, /?, -?, /help, -help, --help)
+if (( $# == 0 )) || [[ $1 == [/-]? ]] || [[ $1 == [/-]help ]] || [[ $1 == --help ]]; then
+    printHelp
+else
+    main "$@"
+fi
+
+
+

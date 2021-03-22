@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "$@" | ssed -e "s@^[yY]:@$HOME@g" -e "s@^[zZ]:@@g" -e 's@\\@/@g'
+
+
+

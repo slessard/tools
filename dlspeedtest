@@ -1,0 +1,101 @@
+#!/bin/sh
+
+#TEST_DOWNLOAD_KILOBYTES=512
+#TEST_DOWNLOAD_BYTES_ACTUAL=524964
+
+TEST_DOWNLOAD_KILOBYTES=1024
+TEST_DOWNLOAD_BYTES_ACTUAL=1049254
+
+
+TEST_URL="http://www.dslreports.com/mspeed?t=3&s=$TEST_DOWNLOAD_KILOBYTES&r=4843&w="
+
+# Tokenize a string
+# Parameters:
+#    $1 = delimiter
+#    $2 = string to tokenize
+# Return value:
+#    The tokenized strings are stored in the TOKENS array environment variable
+TokenizeString ()
+{
+    __delimiter=$1
+    __string=$2
+    n=0
+    for i in `echo "$__string" | tr "$__delimiter" '\n'` ; do
+       eval TOKENS_${n}="${i}"
+       let n=$n+1
+    done
+}
+#Main ()
+#{
+    echo "Running download speed test..."
+    echo "Contacting: \"$TEST_URL\""
+    
+    TIME_ARGS=''
+    TIME_COMMAND=''
+    WGET_ARGS=''
+    WGET_COMMAND=''
+    DC_COMMAND=''
+    DC_ARGS_PREFIX=''
+    DC_ARGS_SUFFIX=''
+    index=0
+    TOKENS=''
+    MEASURED_TIMES=''
+    real=0
+    user=1
+    sys=2
+
+
+    
+    # TODO: Potentially check whether the 'time' command supports
+    #       certain arguments and conditionally add the arguments here
+    if [[ "$(hostname)" == "WNR834Bv2-Hall" ]]; then
+        TIME_COMMAND='/bin/busybox time'
+        TIME_ARGS='-p'
+        WGET_COMMAND='/bin/busybox wget'
+        WGET_ARGS='-O /dev/null -q'
+#        DC_COMMAND='/bin/busybox dc'
+        DC_COMMAND='dc'
+#        DC_ARGS_PREFIX=''
+    else
+        TIME_COMMAND='/usr/bin/time'
+        TIME_ARGS='-p'
+        WGET_COMMAND='/opt/local/bin/wget'
+        WGET_ARGS='-O /dev/null -q'
+        DC_COMMAND='/usr/bin/dc'
+        DC_ARGS_PREFIX="-e 2 k "
+    fi
+    
+    COMMAND="$TIME_COMMAND $TIME_ARGS $WGET_COMMAND $WGET_ARGS \"$TEST_URL\""
+
+    echo "Running command: '$COMMAND'"
+    TEST_RESULTS=`(eval $COMMAND) 2>&1`
+
+    IFS=$'\n'
+    for line in $TEST_RESULTS ; do
+        # Tokenize the line by breaking it into an array
+        unset IFS
+        TokenizeString " " "$line"
+        IFS=$'\n'
+        
+        KEY=$TOKENS_0
+        VALUE=$TOKENS_1
+        eval MEASURED_TIMES_$KEY=$VALUE
+    done
+    
+    echo MEASURED_TIMES_real={$MEASURED_TIMES_real}
+    
+    bps=$($DC_COMMAND $TEST_DOWNLOAD_BYTES_ACTUAL $MEASURED_TIMES_real / .125 / p)
+    Bps=$($DC_COMMAND $TEST_DOWNLOAD_BYTES_ACTUAL $MEASURED_TIMES_real / 1 / p)
+    kbps=$($DC_COMMAND $TEST_DOWNLOAD_BYTES_ACTUAL $MEASURED_TIMES_real / 125 / p)
+    kBps=$($DC_COMMAND $TEST_DOWNLOAD_BYTES_ACTUAL $MEASURED_TIMES_real / 1000 / p)
+    Mbps=$($DC_COMMAND $TEST_DOWNLOAD_BYTES_ACTUAL $MEASURED_TIMES_real / 125000 / p)
+    MBps=$($DC_COMMAND $TEST_DOWNLOAD_BYTES_ACTUAL $MEASURED_TIMES_real / 1000000 / p)
+    
+    echo "bit/s: $bps"
+    echo "B/s: $Bps"
+    echo "kbit/s: $kbps"
+    echo "kB/s: $kBps"
+    echo "Mbit/s: $Mbps"
+    echo "MB/s: $MBps"
+#}
+#Main
