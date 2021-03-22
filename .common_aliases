@@ -8,11 +8,9 @@ fi
 
 function IsOsGreaterOrEqualTo ()
 {
-    local TOKENS
-    TokenizeString . "$1"
-    local __comparand="${TOKENS[1]}${TOKENS[2]}"
-    local __kernel_version=$(NormalizeVersion "$(sysctl -n kern.osrelease)")
-    if (( $__kernel_version >= $__comparand )); then
+    local __comparand=$(NormalizeVersion $1)
+    local __product_version=$(NormalizeVersion "$(sw_vers | grep ProductVersion: | awk '{print $2}')")
+    if (( $__product_version >= $__comparand )); then
         return 0;
     else
         return 1;
@@ -20,10 +18,10 @@ function IsOsGreaterOrEqualTo ()
 }
 
 #Given a version number in the format of "A.B.C.D" take
-# only A.B and normalize it by multiplying by 10
+# only A.B and normalize it by multiplying by 100
 function NormalizeVersion ()
 {
-    local versionnumber=$(dc --expression="${1%.*} 10 * p"); echo ${versionnumber%.*};
+    local versionnumber=$(dc --expression="${1%.*} 100 * p"); echo ${versionnumber%.*};
 }
 
 # Tokenize a string
