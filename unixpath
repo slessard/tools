@@ -1,5 +1,14 @@
 #!/bin/bash
 
+#
+# Convert a Windows path to a unix path.
+#
+# Example:
+#   input:
+#     C:\Program Files\Microsoft\
+#   output:
+#     C:/Program Files/Microsoft/
+
 echo "$@" | ssed -e "s@^[yY]:@$HOME@g" -e "s@^[zZ]:@@g" -e 's@\\@/@g'
 
 
