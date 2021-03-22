@@ -19,4 +19,4 @@ You can learn more about these tools at their respective home pages:
 
 **.NET** - https://dotnet.microsoft.com/ or https://github.com/dotnet/core
 
-**dotnet-script** - https://github.com/filipw/dotnet-script
+**dotnet-script** - https://github.com/filipw/dotnet-script or https://itnext.io/hitchhikers-guide-to-the-c-scripting-13e45f753af9
