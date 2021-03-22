@@ -126,7 +126,6 @@ function main ()
     SERVER="$DEFAULT_SERVER"
 
     processCommandLineArguments "$@"
-    setProxyIfNeeded
     doNameLookup "$@"
 }
 
