@@ -4,10 +4,11 @@ int counter = 0; foreach (string arg in Environment.GetCommandLineArgs()) Consol
 
 // Initialize the "epoch"
 // The "epoch" is 12:00:00 AM UTC, January 1, 1970
-DateTime epoch = new DateTime().AddYears(1969).AddHours(-8);
+//
+DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-TimeSpan nowDiff = (DateTime.Now - epoch);
+TimeSpan nowDiff = (DateTime.UtcNow - epoch);
 System.Console.WriteLine("Current Time (Total Seconds): " + nowDiff.TotalSeconds);
-System.Console.WriteLine("Current Local Time: " + epoch.AddSeconds(nowDiff.TotalSeconds).ToString());
+System.Console.WriteLine("Current Local Time: " + epoch.AddSeconds(nowDiff.TotalSeconds).ToLocalTime().ToString() + " " + TimeZoneInfo.Local.DisplayName);
 System.Console.WriteLine("Current UTC Time: " + epoch.AddSeconds(nowDiff.TotalSeconds).ToUniversalTime().ToString());
 
