@@ -1,0 +1,219 @@
+if [ ${TERM} != "dumb" ]; then
+    echo executing $0:A
+fi
+
+##############################################
+# Helper functions
+##############################################
+
+function IsOsGreaterOrEqualTo ()
+{
+    local TOKENS
+    TokenizeString . "$1"
+    local __comparand="${TOKENS[1]}${TOKENS[2]}"
+    local __kernel_version=$(NormalizeVersion "$(sysctl -n kern.osrelease)")
+    if (( $__kernel_version >= $__comparand )); then
+        return 0;
+    else
+        return 1;
+    fi;
+}
+
+#Given a version number in the format of "A.B.C.D" take
+# only A.B and normalize it by multiplying by 10
+function NormalizeVersion ()
+{
+    local versionnumber=$(dc --expression="${1%.*} 10 * p"); echo ${versionnumber%.*};
+}
+
+# Tokenize a string
+# Parameters:
+#    $1 = delimiter
+#    $2 = string to tokenize
+# Return value:
+#    The tokenized strings are stored in the TOKENS array environment variable
+function TokenizeString ()
+{
+    local __delimiter=$1
+    local __string=$2
+
+    unset TOKENS
+    for i in `echo "$__string" | tr "$__delimiter" '\n'` ; do
+        TOKENS+=(${i})
+    done
+}
+
+
+##############################################
+# Common general shell command aliases and functions
+##############################################
+# Search for a string in all alias definitions
+alias aliasdump='alias | grep -i'
+
+# Reload all alias definitions
+alias aliasreload='unalias -a && . ~/.aliases'
+
+# Copy the working directory to the clipboard
+alias clipcd='pwd | pbcopy'
+
+# Initialize the developer environment
+function devinitcommon()
+{
+    # Only run the 'source' command if the CONST_DEVELOPER_DIR environment variable is not defined
+    # This protects against the developer environment from being initialized more than once
+    if [ ! -n "${CONST_DEVELOPER_DIR+x}" ] ; then
+        source "$@" ;
+    fi ;
+}
+
+# Search for an environment variable
+function envchk() { env | grep -Ei "^$1" ; }
+
+# Search for a string in the current environment variables (including variable names and values)
+alias envdump='env | grep -i'
+
+# Go to the user's $HOME directory
+function home () { pushd $HOME/"$@" ; }
+
+# Monitor filesystem and network usage by all processes started after running this command.
+# Similar to this tool:
+#     https://www.macupdate.com/app/mac/58855/fsmonitor
+#     https://fsmonitor.com
+alias fswatcher='fs_usage -e $(ps -A -o pid)'
+
+# Get the IP Address for the specified interface
+alias ipaddr0='ipconfig getifaddr en0'
+alias ipaddr1='ipconfig getifaddr en1'
+
+# Get a list of all applications currently registered with Launch Services
+alias listapps='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -dump | grep --after-context 1 "^bundle" | grep --only-matching "/.*\.app" | sort'
+
+# Just list the good stuff (Don't show where symbolic links point to)
+alias ls='ls -la'
+
+# Rebuild the LaunchServices database
+alias lsrebuild='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -domain user -seed'
+
+# Dump out the machine's config for use when reporting bugs
+alias osinfo='(sw_vers; uname -a; sysctl -n machdep.cpu.brand_string)'
+
+# I'm too lazy to type pushd
+alias pd='pushd'
+
+# Customize the default set of properties displayed by the 'ps' command
+#alias ps='ps -o pid,pri,command'
+alias psa='ps -a -o pid,pri,command'
+alias psA='ps -A -o pid,pri,command'
+
+# Delete all the .DS_Store files in and under the current directory
+alias rmdsstore='find . -name .DS_Store -type f -exec rm {} ";"'
+
+# Dump the 'screen' session name
+alias sessionname='echo $STY'
+
+# Code signing
+alias sigcheck='codesign --verbose -v'
+alias sigdump='codesign -dvv'
+
+# Establish SOCKS proxy over SSH
+alias socks="ssh -vND 8888 -p 22088 slessard@home.pigdawg.com"
+
+# 'sudo' for authorized non-admin users
+#alias sudo='sudo -u localadmin sudo'
+
+# Set the Terminal.app window (or tab) title to the value of $1 or $WINDOWTITLE
+function tt() { local __TITLE=$WINDOWTITLE ; if [[ "$1" != "" ]] ; then __TITLE=$1 ; fi ; echo -n -e "\033]0;$__TITLE\007" ; }
+
+# Set the Terminal.app window (or tab) title to the value of current working directory
+function ttcd() { local __TITLE=$(basename $PWD) ; echo -n -e "\033]0;$__TITLE\007" ; }
+
+# A 'where' command similar to the one found in DOS
+alias where2='type -a'
+alias where3='find ${PATH//:/" "} -maxdepth 1 -type f -perm -0111 -iname'
+function where4 ()
+{
+    local escapedGrepPattern="$(echo "$@" | sed 's@\*@[^/]*@g')"
+    
+    where "$@"
+    alias | sort | sed s/alias[[:space:]]//g | grep -i "$@"
+    set | grep '()' | grep -i "$@"
+    (
+        IFS=$'\n';
+        for file in $(system_profiler SPApplicationsDataType | grep Location:) ; do
+            echo "$file" | sed 's/[[:space:]]*Location:[[:space:]]//g' | grep -i "$escapedGrepPattern$" ;
+        done;
+    )
+}
+
+# Dump a function's definition
+function funcdump () { type -a "$1" ; }
+
+# Dump the file and line number where a function is defined
+function funcloc () { shopt -s extdebug ; declare -F "$1" ; shopt -u extdebug ; }
+
+# Find files with names beginning with the string in $1
+function mdff ()
+{
+    IsOsGreaterOrEqualTo 10.6
+    if (( 0 == $? )) ; then
+        local QUERY="$1"
+        local COMMAND="mdfind -name \"$QUERY\""
+        echo "Running: $COMMAND"
+        eval $COMMAND | grep -i "/$QUERY"
+    else
+        local QUERY="$1"
+        shift
+        local COMMAND="mdfind $@ \"$QUERY\""
+        echo "Running: $COMMAND"
+        eval $COMMAND | grep -i "/$QUERY"
+    fi
+}
+
+# Find files with names containing the string in $1
+function mdfp ()
+{
+    local QUERY="$1"
+    shift
+    local COMMAND="mdfind $@ \"$QUERY\""
+    echo "Running: $COMMAND"
+    eval $COMMAND | grep -i "$QUERY"
+}
+
+# Get the PID of the process using the given port
+function lsop()
+{
+    lsof  -i :$1 | grep LISTEN | awk '{print $2}'
+}
+
+# Kill the process using the given port
+function killport()
+{
+	if [ -z $1 ]; then
+		echo 'Port is required. Usage: "killport 8000"';
+		return
+	fi
+	local pid=`lsof  -i :$1 | grep LISTEN | awk '{print $2}'`
+	if [ -z $pid ]; then
+		echo "No process running on $1"
+	else
+		echo "Killing process [$pid]"
+		kill $pid
+	fi
+}
+
+function proxyon()
+{
+	export HTTP_PROXY=http://127.0.0.1:8888
+	export HTTPS_PROXY=http://127.0.0.1:8888
+}
+
+function proxyoff()
+{
+	unset HTTP_PROXY
+	unset HTTPS_PROXY
+}
+
+function proxystat()
+{
+	envdump http
+}
