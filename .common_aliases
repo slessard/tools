@@ -113,9 +113,6 @@ alias sessionname='echo $STY'
 alias sigcheck='codesign --verbose -v'
 alias sigdump='codesign -dvv'
 
-# Establish SOCKS proxy over SSH
-alias socks="ssh -vND 8888 -p 22088 slessard@home.pigdawg.com"
-
 # 'sudo' for authorized non-admin users
 #alias sudo='sudo -u localadmin sudo'
 
@@ -147,7 +144,8 @@ function where4 ()
 function funcdump () { type -a "$1" ; }
 
 # Dump the file and line number where a function is defined
-function funcloc () { shopt -s extdebug ; declare -F "$1" ; shopt -u extdebug ; }
+# This implementation requires Bash: function funcloc () { shopt -s extdebug ; declare -F "$1" ; shopt -u extdebug ; }
+function funcloc () { whence -v $1 }
 
 # Find files with names beginning with the string in $1
 function mdff ()
